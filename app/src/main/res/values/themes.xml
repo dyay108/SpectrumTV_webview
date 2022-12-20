@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.spectv" parent="@style/Theme.Leanback" />
+</resources>
