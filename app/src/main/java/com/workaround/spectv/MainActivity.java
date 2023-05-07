@@ -45,7 +45,7 @@ public class MainActivity extends FragmentActivity {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 String[] resources = request.getResources();
-                for (int i = 0; i <+ resources.length; i++) {
+                for (int i = 0; i < +resources.length; i++) {
                     if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(resources[i])) {
                         request.grant(resources);
                         return;
@@ -64,38 +64,38 @@ public class MainActivity extends FragmentActivity {
         initWebviews(spectrumGuideWebSettings);
 
         spectrumGuide.addJavascriptInterface(this, "Specguide");
-        spectrumPlayer.addJavascriptInterface(this, "Spectv");
+        spectrumGuide.loadUrl(guideUrl);
 
+        spectrumPlayer.addJavascriptInterface(this, "Spectv");
         spectrumPlayer.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 spectrumPlayer.evaluateJavascript("var loopVar = setInterval(function() {" +
-                        "try{" +
-                        // Accept initial prompts
-                        "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
-                        "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
-                        // Max volume
-                        "document.getElementById('spectrum-player').getElementsByTagName('video')[0].volume = 1.0;" +
-                        // Hide html elements except video player
-                        "$('.site-header').attr('style', 'display: none');" +
-                        "$('#video-controls').attr('style', 'display: none');" +
-                        "$('.nav-triangle-pattern').attr('style', 'display: none');" +
-                        "$('channels-filter').attr('style', 'display: none');" +
-                        "$('.transparent-header').attr('style', 'display: none');" +
-                        // Style mini channel guide
-                        "$('#channel-browser').attr('style', 'height: 100%');" +
-                        "$('.mini-guide').attr('style', 'height: 100%');" +
-                        // To help with navigation with remote. Doesn't seem to do anything though
-                        "$('#channel-browser').attr('style', 'tabindex: 1');" +
-                        "$('#spectrum-player').attr('style', 'tabindex: 0');" +
-                        "}" +
-                        "catch(e){" +
-                        "console.log(e)" +
-                        "}" +
-                        "}, 2000);" +
-                        "function channelSelected(s) {Spectv.changeChannel(s)}" +
-                        "$('[id^=\"channel-list-item\"]').on('click', (event) =>  console.log(\"&&&&&&&&&&&&&&&&&&&&&&\", event.target) )"
+                                "try{" +
+                                // Accept initial prompts
+                                "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
+                                "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
+                                // Max volume
+                                "document.getElementById('spectrum-player').getElementsByTagName('video')[0].volume = 1.0;" +
+                                // Hide html elements except video player
+                                "$('.site-header').attr('style', 'display: none');" +
+                                "$('#video-controls').attr('style', 'display: none');" +
+                                "$('.nav-triangle-pattern').attr('style', 'display: none');" +
+                                "$('channels-filter').attr('style', 'display: none');" +
+                                "$('.transparent-header').attr('style', 'display: none');" +
+                                // Style mini channel guide
+                                "$('#channel-browser').attr('style', 'height: 100%');" +
+                                "$('.mini-guide').attr('style', 'height: 100%');" +
+                                // To help with navigation with remote. Doesn't seem to do anything though
+                                "$('#channel-browser').attr('style', 'tabindex: 1');" +
+                                "$('#spectrum-player').attr('style', 'tabindex: 0');" +
+                                "}" +
+                                "catch(e){" +
+                                "console.log(e)" +
+                                "}" +
+                                "}, 2000);" +
+                                "function toggleGuide(s) {Spectv.channelGuide(s)}"
                         , null);
 
             }
@@ -109,13 +109,13 @@ public class MainActivity extends FragmentActivity {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         // Handle key events to consistently bring up the mini channel guide
-        if (event.getAction() == KeyEvent.ACTION_DOWN ) {
-            if(event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT || event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT || event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT) {
                 // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
-                spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
+//                spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
 
-                spectrumPlayer.evaluateJavascript("channelSelected('yooooooo');", null);
+                spectrumPlayer.evaluateJavascript("toggleGuide('toggle guide');", null);
 
                 return true;
             }
@@ -125,15 +125,34 @@ public class MainActivity extends FragmentActivity {
     }
 
     @JavascriptInterface
-    public void changeChannel(String test) {
-        switch (spectrumGuide.getVisibility() ) {
+    public void channelGuide(String test) {
+        switch (spectrumGuide.getVisibility()) {
             case View.GONE:
                 Log.d("***********showing ", test);
-                spectrumGuide.setVisibility(View.VISIBLE);
+                try {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            spectrumGuide.setVisibility(View.VISIBLE);
+                        }
+                    });
+
+                } catch (Exception e) {
+                    Log.d("%%%%%%%%%%%%%%ERROR in showing", e.toString());
+                }
                 break;
             case View.VISIBLE:
                 Log.d("***********hiding ", test);
-                spectrumGuide.setVisibility(View.GONE);
+                try {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            spectrumGuide.setVisibility(View.GONE);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.d("%%%%%%%%%%%%%%ERROR in hiding", e.toString());
+                }
                 break;
         }
     }
