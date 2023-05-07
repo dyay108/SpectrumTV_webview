@@ -36,82 +36,6 @@ public class MainActivity extends FragmentActivity {
 
         spectrumPlayer.addJavascriptInterface(this, "Spectv");
         spectrumGuide.addJavascriptInterface(this, "Spectv");
-
-//        spectrumPlayer = (WebView) findViewById(R.id.spectv);
-//        spectrumGuide = (WebView) findViewById(R.id.spectv_guide);
-//        spectrumGuide.setVisibility(View.GONE);
-//
-//        spectrumPlayer.setWebChromeClient(new WebChromeClient() {
-//            @Override
-//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-//                Log.d("**************************", consoleMessage.message() + " -- From line " +
-//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-//                return true;
-//            }
-//
-//            @Override
-//            public void onPermissionRequest(PermissionRequest request) {
-//                String[] resources = request.getResources();
-//                for (int i = 0; i < +resources.length; i++) {
-//                    if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(resources[i])) {
-//                        request.grant(resources);
-//                        return;
-//                    }
-//                }
-//
-//                super.onPermissionRequest(request);
-//            }
-//
-//
-//        });
-//        WebSettings spectrumPlayerWebSettings = spectrumPlayer.getSettings();
-//        WebSettings spectrumGuideWebSettings = spectrumGuide.getSettings();
-//
-//        initWebviews(spectrumPlayerWebSettings);
-//        initWebviews(spectrumGuideWebSettings);
-//
-//        spectrumGuide.addJavascriptInterface(this, "Specguide");
-//        spectrumGuide.loadUrl(guideUrl);
-//
-//        spectrumPlayer.addJavascriptInterface(this, "Spectv");
-//        spectrumGuide.addJavascriptInterface(this, "Spectv");
-//
-//        spectrumPlayer.setWebViewClient(new WebViewClient() {
-//            @Override
-//            public void onPageFinished(WebView view, String url) {
-//                super.onPageFinished(view, url);
-//                spectrumPlayer.evaluateJavascript("var loopVar = setInterval(function() {" +
-//                                "try{" +
-//                                // Accept initial prompts
-//                                "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
-//                                "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
-//                                // Max volume
-//                                "document.getElementById('spectrum-player').getElementsByTagName('video')[0].volume = 1.0;" +
-//                                // Hide html elements except video player
-//                                "$('.site-header').attr('style', 'display: none');" +
-//                                "$('#video-controls').attr('style', 'display: none');" +
-//                                "$('.nav-triangle-pattern').attr('style', 'display: none');" +
-//                                "$('channels-filter').attr('style', 'display: none');" +
-//                                "$('.transparent-header').attr('style', 'display: none');" +
-//                                // Style mini channel guide
-//                                "$('#channel-browser').attr('style', 'height: 100%');" +
-//                                "$('.mini-guide').attr('style', 'height: 100%');" +
-//                                // To help with navigation with remote. Doesn't seem to do anything though
-//                                "$('#channel-browser').attr('style', 'tabindex: 1');" +
-//                                "$('#spectrum-player').attr('style', 'tabindex: 0');" +
-//                                "}" +
-//                                "catch(e){" +
-//                                "console.log(e)" +
-//                                "}" +
-//                                "}, 2000);" +
-//                                "function toggleGuide(s) {Spectv.channelGuide(s)}"
-//                        , null);
-//
-//            }
-//
-//        });
-//        spectrumPlayer.setVerticalScrollBarEnabled(false);
-//        spectrumPlayer.loadUrl("https://watch.spectrum.net/?sessionOverride=true");
     }
 
     @SuppressLint("RestrictedApi")
@@ -119,7 +43,7 @@ public class MainActivity extends FragmentActivity {
     public boolean dispatchKeyEvent(KeyEvent event) {
         // Handle key events to consistently bring up the mini channel guide
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP  && spectrumGuide.getVisibility() == View.GONE ) {
+            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP && spectrumGuide.getVisibility() == View.GONE) {
                 // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
 //                spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
@@ -127,7 +51,7 @@ public class MainActivity extends FragmentActivity {
                     @Override
                     public void onReceiveValue(String currentURL) {
                         currentURL = currentURL.replaceAll("^\"|\"$", "");
-                        if(!currentURL.equals(guideUrl)) {
+                        if (!currentURL.equals(guideUrl)) {
                             Log.d("!!!!!!!!!!!!!!!!!!!!!", guideUrl);
 //                            spectrumGuide.loadUrl(guideUrl);
                             spectrumGuide.evaluateJavascript("history.go(-(history.length -1))", null);
@@ -139,7 +63,7 @@ public class MainActivity extends FragmentActivity {
                 return true;
             }
 
-            if (event.getKeyCode() == KeyEvent.KEYCODE_BACK  && spectrumGuide.getVisibility() != View.GONE ) {
+            if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && spectrumGuide.getVisibility() != View.GONE) {
                 // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
 //                spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
@@ -185,6 +109,21 @@ public class MainActivity extends FragmentActivity {
                     Log.d("%%%%%%%%%%%%%%ERROR in hiding", e.toString());
                 }
                 break;
+        }
+    }
+
+    @JavascriptInterface
+    public void navToChannel(String channelId) {
+        try {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    spectrumPlayer.loadUrl("https://watch.spectrum.net/livetv?tmsid="+channelId);
+                    spectrumGuide.setVisibility(View.GONE);
+                }
+            });
+        } catch (Exception e) {
+            Log.d("%%%%%%%%%%%%%%ERROR in hiding", e.toString());
         }
     }
 
@@ -300,7 +239,28 @@ public class MainActivity extends FragmentActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 spectrumGuide.evaluateJavascript(
-                                "var loopVar = null;//setInterval(function() {console.log('##########################'), 2000});"
+                        "var loopVar = setInterval(function() {" +
+                                "try {" +
+
+                                "$('.top-level-nav').attr('style', 'display: none');" +
+                                "$('.navbar').attr('style', 'display: none');" +
+                                "$('.time-nav').attr('style', 'display: none');" +
+                                "$('.guide').attr('style', 'width: 100%');" +
+
+                                "var currentURL = new URL(window.location.href);" +
+                                "$('.kite-btn:contains(\\'Watch Live\\')').on(\"click\", function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
+
+                                "}" +
+                                "catch (error) {" +
+                                "console.log(error)" +
+                                "}" +
+                                "}" +
+                                ", 2000 " +
+                                ");"
+
+//                                "function getWatchLiveChannel() {" +
+//                                "var url = new URL(window.location.href)" +
+//                                "return url.searchParams.get('tmsGuideServiceId')"
                         , null);
             }
         });
