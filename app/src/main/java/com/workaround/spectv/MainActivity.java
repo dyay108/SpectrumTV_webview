@@ -1,6 +1,7 @@
 package com.workaround.spectv;
 
 import android.annotation.SuppressLint;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -25,6 +26,7 @@ public class MainActivity extends FragmentActivity {
     final String guideUrl = "https://watch.spectrum.net/guide";
     WebView spectrumPlayer;
     WebView spectrumGuide;
+    Integer currentHistoryIndex = -5;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,15 +47,13 @@ public class MainActivity extends FragmentActivity {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP && spectrumGuide.getVisibility() == View.GONE) {
                 // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
-//                spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
+                //spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
                 spectrumGuide.evaluateJavascript("window.location.href;", new ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String currentURL) {
                         currentURL = currentURL.replaceAll("^\"|\"$", "");
                         if (!currentURL.equals(guideUrl)) {
-                            Log.d("!!!!!!!!!!!!!!!!!!!!!", guideUrl);
-//                            spectrumGuide.loadUrl(guideUrl);
                             spectrumGuide.evaluateJavascript("history.go(-(history.length -1))", null);
                         }
                         spectrumPlayer.evaluateJavascript("toggleGuide('SHOW');", null);
@@ -64,11 +64,12 @@ public class MainActivity extends FragmentActivity {
             }
 
             if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && spectrumGuide.getVisibility() != View.GONE) {
-                // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
-//                spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
-
-                spectrumPlayer.evaluateJavascript("toggleGuide('HIDE');", null);
+                if (spectrumGuide.canGoBack()) {
+                    spectrumGuide.evaluateJavascript("history.back();", null);
+                } else {
+                    spectrumPlayer.evaluateJavascript("toggleGuide('HIDE');", null);
+                }
 
                 return true;
             }
@@ -81,8 +82,6 @@ public class MainActivity extends FragmentActivity {
     public void channelGuide(String action) {
         switch (action) {
             case "SHOW":
-                Log.d("***********showing ", action);
-
                 try {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -93,11 +92,10 @@ public class MainActivity extends FragmentActivity {
                     });
 
                 } catch (Exception e) {
-                    Log.d("%%%%%%%%%%%%%%ERROR in showing", e.toString());
+                    Log.d("ERROR in showing", e.toString());
                 }
                 break;
             case "HIDE":
-                Log.d("***********hiding ", action);
                 try {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -106,7 +104,7 @@ public class MainActivity extends FragmentActivity {
                         }
                     });
                 } catch (Exception e) {
-                    Log.d("%%%%%%%%%%%%%%ERROR in hiding", e.toString());
+                    Log.d("ERROR in hiding", e.toString());
                 }
                 break;
         }
@@ -118,12 +116,12 @@ public class MainActivity extends FragmentActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    spectrumPlayer.loadUrl("https://watch.spectrum.net/livetv?tmsid="+channelId);
+                    spectrumPlayer.loadUrl("https://watch.spectrum.net/livetv?tmsid=" + channelId);
                     spectrumGuide.setVisibility(View.GONE);
                 }
             });
         } catch (Exception e) {
-            Log.d("%%%%%%%%%%%%%%ERROR in hiding", e.toString());
+            Log.d("ERROR in live channel nav", e.toString());
         }
     }
 
@@ -188,6 +186,7 @@ public class MainActivity extends FragmentActivity {
                                 // To help with navigation with remote. Doesn't seem to do anything though
                                 "$('#channel-browser').attr('style', 'tabindex: 1');" +
                                 "$('#spectrum-player').attr('style', 'tabindex: 0');" +
+                                "$('.site-footer').attr('style', 'display: none');" +
                                 "}" +
                                 "catch(e){" +
                                 "console.log(e)" +
@@ -206,6 +205,9 @@ public class MainActivity extends FragmentActivity {
     private void initGuide() {
         spectrumGuide = (WebView) findViewById(R.id.spectv_guide);
         spectrumGuide.setVisibility(View.GONE);
+
+        spectrumGuide.setBackgroundColor(Color.TRANSPARENT);
+        spectrumGuide.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
 
         spectrumGuide.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -246,21 +248,25 @@ public class MainActivity extends FragmentActivity {
                                 "$('.navbar').attr('style', 'display: none');" +
                                 "$('.time-nav').attr('style', 'display: none');" +
                                 "$('.guide').attr('style', 'width: 100%');" +
+                                "$('.site-footer').attr('style', 'display: none');" +
+                                "$('.tab-content').attr('tabindex', '0');" +
+//                                "if(!$('#tab-content').length){" +
+//                                "$('.tab-content').attr('id', 'tab-content');" +
+//                                "$('[role=\\'tablist\\']').append('<div><a tabindex=\\'0\\' href=\\'#tab-content\\'>Scroll Down</a></div>');" +
+//                                "};" +
+
+//                                "$('li:contains(\\'Episodes\\')').on('focus', ()=> {$('.details-section')[0].scrollIntoView(true)});" +
 
                                 "var currentURL = new URL(window.location.href);" +
                                 "$('.kite-btn:contains(\\'Watch Live\\')').on(\"click\", function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
 
                                 "}" +
                                 "catch (error) {" +
-                                "console.log(error)" +
+                                "console.log(error);" +
                                 "}" +
                                 "}" +
                                 ", 2000 " +
                                 ");"
-
-//                                "function getWatchLiveChannel() {" +
-//                                "var url = new URL(window.location.href)" +
-//                                "return url.searchParams.get('tmsGuideServiceId')"
                         , null);
             }
         });
