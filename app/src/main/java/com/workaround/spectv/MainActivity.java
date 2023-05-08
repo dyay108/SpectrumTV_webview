@@ -1,6 +1,8 @@
 package com.workaround.spectv;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,14 +26,23 @@ public class MainActivity extends FragmentActivity {
 
     final String uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36";
     final String guideUrl = "https://watch.spectrum.net/guide";
+    final String baseLiveChannelURL = "https://watch.spectrum.net/livetv?tmsid=";
+    final String newSessionURL = "https://watch.spectrum.net/?sessionOverride=true";
+
     WebView spectrumPlayer;
     WebView spectrumGuide;
-    Integer currentHistoryIndex = -5;
+
+    SharedPreferences sharedPref;
+    SharedPreferences.Editor sharedPrefEdit;
+    String lastChannelURL;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        sharedPref = this.getSharedPreferences("com.workaround.spectv.pref", Context.MODE_PRIVATE);
+        sharedPrefEdit = sharedPref.edit();
+        lastChannelURL = sharedPref.getString("lastChannel", "");
 
         initPlayer();
         initGuide();
@@ -49,16 +60,18 @@ public class MainActivity extends FragmentActivity {
                 // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
                 //spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
-                spectrumGuide.evaluateJavascript("window.location.href;", new ValueCallback<String>() {
-                    @Override
-                    public void onReceiveValue(String currentURL) {
-                        currentURL = currentURL.replaceAll("^\"|\"$", "");
-                        if (!currentURL.equals(guideUrl)) {
-                            spectrumGuide.evaluateJavascript("history.go(-(history.length -1))", null);
-                        }
-                        spectrumPlayer.evaluateJavascript("toggleGuide('SHOW');", null);
-                    }
-                });
+//                spectrumGuide.evaluateJavascript("window.location.href;", new ValueCallback<String>() {
+//                    @Override
+//                    public void onReceiveValue(String currentURL) {
+//                        currentURL = currentURL.replaceAll("^\"|\"$", "");
+//                        if (!currentURL.equals(guideUrl)) {
+//                            spectrumGuide.evaluateJavascript("history.go(-(history.length -1))", null);
+//                        }
+//                        spectrumPlayer.evaluateJavascript("toggleGuide('SHOW');", null);
+//                    }
+//                });
+
+                spectrumPlayer.evaluateJavascript("toggleGuide('SHOW');", null);
 
                 return true;
             }
@@ -116,7 +129,9 @@ public class MainActivity extends FragmentActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    spectrumPlayer.loadUrl("https://watch.spectrum.net/livetv?tmsid=" + channelId);
+                    sharedPrefEdit.putString("lastChannel", baseLiveChannelURL + channelId);
+                    sharedPrefEdit.apply();
+                    spectrumPlayer.loadUrl(baseLiveChannelURL + channelId);
                     spectrumGuide.setVisibility(View.GONE);
                 }
             });
@@ -137,12 +152,12 @@ public class MainActivity extends FragmentActivity {
         spectrumPlayer = (WebView) findViewById(R.id.spectv);
 
         spectrumPlayer.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("**************PLAYER************", consoleMessage.message() + " -- From line " +
-                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-                return true;
-            }
+//            @Override
+//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+//                Log.d("**************PLAYER************", consoleMessage.message() + " -- From line " +
+//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+//                return true;
+//            }
 
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -199,7 +214,7 @@ public class MainActivity extends FragmentActivity {
 
         });
         spectrumPlayer.setVerticalScrollBarEnabled(false);
-        spectrumPlayer.loadUrl("https://watch.spectrum.net/?sessionOverride=true");
+        spectrumPlayer.loadUrl(lastChannelURL.isEmpty() ? newSessionURL : lastChannelURL);
     }
 
     private void initGuide() {
@@ -210,12 +225,12 @@ public class MainActivity extends FragmentActivity {
         spectrumGuide.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
 
         spectrumGuide.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("**************GUIDE************", consoleMessage.message() + " -- From line " +
-                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-                return true;
-            }
+//            @Override
+//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+//                Log.d("**************GUIDE************", consoleMessage.message() + " -- From line " +
+//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+//                return true;
+//            }
 
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -250,6 +265,7 @@ public class MainActivity extends FragmentActivity {
                                 "$('.guide').attr('style', 'width: 100%');" +
                                 "$('.site-footer').attr('style', 'display: none');" +
                                 "$(\"[role='tablist']\").attr('style', 'display: none');" +
+
                                 "var currentURL = new URL(window.location.href);" +
                                 "$('.kite-btn:contains(\\'Watch Live\\')').on(\"click\", function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
 
