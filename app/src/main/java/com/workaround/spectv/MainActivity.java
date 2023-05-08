@@ -249,15 +249,7 @@ public class MainActivity extends FragmentActivity {
                                 "$('.time-nav').attr('style', 'display: none');" +
                                 "$('.guide').attr('style', 'width: 100%');" +
                                 "$('.site-footer').attr('style', 'display: none');" +
-//                                "$('.tab-content').attr('tabindex', '0');" +
-                                "if(!$('#tab-content').length){" +
-                                "$('.tab-content').attr('id', 'tab-content');" +
-                                "$(\"[role='tablist']\").append('<li><a tabindex=\"0\" role=\"tab\" href=\"#tab-content\">Scroll Down</a></li>');" +
-//                                "$('[role=\\'tablist\\']').append('<div><a tabindex=\\'0\\' role=\\'tab\\' href=\\'#tab-content\\'>Scroll Down</a></div>');" +
-                                "};" +
-
-//                                "$('li:contains(\\'Episodes\\')').on('focus', ()=> {$('.details-section')[0].scrollIntoView(true)});" +
-
+                                "$(\"[role='tablist']\").attr('style', 'display: none');" +
                                 "var currentURL = new URL(window.location.href);" +
                                 "$('.kite-btn:contains(\\'Watch Live\\')').on(\"click\", function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
 
