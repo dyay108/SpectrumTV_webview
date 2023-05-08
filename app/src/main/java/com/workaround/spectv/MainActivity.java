@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.ConsoleMessage;
+import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -35,6 +36,9 @@ public class MainActivity extends FragmentActivity {
     SharedPreferences sharedPref;
     SharedPreferences.Editor sharedPrefEdit;
     String lastChannelURL;
+
+    String cookies;
+    boolean guideLoaded = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -181,6 +185,7 @@ public class MainActivity extends FragmentActivity {
         spectrumPlayer.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
+                cookies = CookieManager.getInstance().getCookie(url);
                 super.onPageFinished(view, url);
                 spectrumPlayer.evaluateJavascript("var loopVar = setInterval(function() {" +
                                 "try{" +
@@ -209,6 +214,9 @@ public class MainActivity extends FragmentActivity {
                                 "}, 2000);" +
                                 "function toggleGuide(s) {Spectv.channelGuide(s)}"
                         , null);
+                if(!guideLoaded) {
+                    spectrumGuide.loadUrl(guideUrl);
+                }
 
             }
 
@@ -249,11 +257,13 @@ public class MainActivity extends FragmentActivity {
         WebSettings spectrumGuideWebSettings = spectrumGuide.getSettings();
         initWebviews(spectrumGuideWebSettings);
 
-        spectrumGuide.loadUrl(guideUrl);
-
         spectrumGuide.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
+                if(!guideLoaded) {
+                    guideLoaded = true;
+                    CookieManager.getInstance().setCookie(guideUrl, cookies, null);
+                }
                 super.onPageFinished(view, url);
                 spectrumGuide.evaluateJavascript(
                         "var loopVar = setInterval(function() {" +
@@ -267,7 +277,8 @@ public class MainActivity extends FragmentActivity {
                                 "$(\"[role='tablist']\").attr('style', 'display: none');" +
 
                                 "var currentURL = new URL(window.location.href);" +
-                                "$('.kite-btn:contains(\\'Watch Live\\')').on(\"click\", function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
+                                "$('button:contains(\\'Watch Live\\')').unbind('click');" +
+                                "$('button:contains(\\'Watch Live\\')').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
 
                                 "}" +
                                 "catch (error) {" +
