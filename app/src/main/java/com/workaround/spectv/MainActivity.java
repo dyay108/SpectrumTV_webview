@@ -144,6 +144,22 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
+    @JavascriptInterface
+    public void preloadGuide() {
+        try {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(!guideLoaded) {
+                        spectrumGuide.loadUrl(guideUrl);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            Log.d("ERROR in live channel nav", e.toString());
+        }
+    }
+
     private void initWebviews(WebSettings wv) {
         wv.setJavaScriptEnabled(true);
         wv.setDomStorageEnabled(true);
@@ -193,7 +209,10 @@ public class MainActivity extends FragmentActivity {
                                 "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
                                 "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
                                 // Max volume
-                                "document.getElementById('spectrum-player').getElementsByTagName('video')[0].volume = 1.0;" +
+                                "$('video')[0].volume = 1.0;" +
+                                "if($('video')[0]) {" +
+                                "Spectv.preloadGuide();" +
+                                "}" +
                                 // Hide html elements except video player
                                 "$('.site-header').attr('style', 'display: none');" +
                                 "$('#video-controls').attr('style', 'display: none');" +
@@ -214,9 +233,6 @@ public class MainActivity extends FragmentActivity {
                                 "}, 2000);" +
                                 "function toggleGuide(s) {Spectv.channelGuide(s)}"
                         , null);
-                if(!guideLoaded) {
-                    spectrumGuide.loadUrl(guideUrl);
-                }
 
             }
 
