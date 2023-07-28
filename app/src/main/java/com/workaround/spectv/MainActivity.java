@@ -12,7 +12,6 @@ import android.webkit.ConsoleMessage;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
-import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -41,6 +40,66 @@ public class MainActivity extends FragmentActivity {
     boolean guideLoaded = false;
 
     boolean miniGuideIsShowing = false;
+
+    String playerInitJS = "var loopVar = setInterval(" +
+            "function() {" +
+            "try{" +
+            // Accept initial prompts
+            "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
+            "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
+            // Max volume
+            "$('video')[0].volume = 1.0;" +
+            "if($('video')[0]) {" +
+            "Spectv.preloadGuide();" +
+            "}" +
+            // Hide html elements except video player
+            "$('.site-header').attr('style', 'display: none');" +
+            "$('#video-controls').attr('style', 'display: none');" +
+            "$('.nav-triangle-pattern').attr('style', 'display: none');" +
+            "$('channels-filter').attr('style', 'display: none');" +
+            "$('.transparent-header').attr('style', 'display: none');" +
+            // Style mini channel guide
+            "$('#channel-browser').attr('style', 'height: 100%');" +
+            "$('.mini-guide').attr('style', 'height: 100%');" +
+            // To help with navigation with remote. Doesn't seem to do anything though
+            "$('#channel-browser').attr('style', 'tabindex: 0');" +
+            "$('#spectrum-player').attr('style', 'tabindex: 0');" +
+            "$('.site-footer').attr('style', 'display: none');" +
+            "}" +
+            "catch(e){" +
+            "console.log(e)" +
+            "}" +
+            "}, 2000);" +
+            "function toggleGuide(s) {Spectv.channelGuide(s)}" +
+            "function toggleMiniGuide(s) {Spectv.channelGuide(s)};";
+
+    String guideInitJS =
+            "var loopVar = setInterval(" +
+            "function() {" +
+                    "try {" +
+                    "$('.site-footer-wrapper').attr('style', 'display: none');" +
+                    "$('.top-level-nav').attr('style', 'display: none');" +
+                    "$('.navbar').attr('style', 'display: none');" +
+                    "$('.time-nav').attr('style', 'display: none');" +
+                    "$('.guide').attr('style', 'width: 100%');" +
+                    "$('.site-footer').attr('style', 'display: none');" +
+                    "$('.filter-section').attr('style', 'display: none');" +
+                    "$(\"[role='tablist']\").attr('style', 'display: none');" +
+
+                    "if($('.channel-content').length > 0 && !$('.channel-content').is(':focus')) {" +
+                    "$('.channel-content-list-container').attr('style', 'tabindex: 1');" +
+                    "$('.channel-content-list-container').focus();" +
+                    "}" +
+                    "$('.channel-content-list-container').unbind('click');" +
+                    "$('.channel-content-list-container').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(new URL(event.target.href).searchParams.get('tmsGuideServiceId'))});" +
+
+                    "}" +
+                    "catch (error) {" +
+                    "console.log(error);" +
+                    "}" +
+            "}" +
+            ", 2000 " +
+            ");";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -94,11 +153,10 @@ public class MainActivity extends FragmentActivity {
             }
 
             if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT && spectrumGuide.getVisibility() == View.GONE) {
-                if(miniGuideIsShowing) {
+                if (miniGuideIsShowing) {
                     spectrumPlayer.evaluateJavascript("$('mini-guide').last().removeClass('mini-guide-open')", null);
                     miniGuideIsShowing = false;
-                }
-                else {
+                } else {
                     spectrumPlayer.evaluateJavascript("$('mini-guide').last().addClass('mini-guide-open')", null);
                     miniGuideIsShowing = true;
                 }
@@ -152,6 +210,7 @@ public class MainActivity extends FragmentActivity {
                     sharedPrefEdit.apply();
                     spectrumPlayer.loadUrl(baseLiveChannelURL + channelId);
                     spectrumGuide.setVisibility(View.GONE);
+                    spectrumGuide.evaluateJavascript("history.back();", null);
                 }
             });
         } catch (Exception e) {
@@ -165,7 +224,7 @@ public class MainActivity extends FragmentActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if(!guideLoaded) {
+                    if (!guideLoaded) {
                         spectrumGuide.loadUrl(guideUrl);
                     }
                 }
@@ -179,7 +238,7 @@ public class MainActivity extends FragmentActivity {
         wv.setJavaScriptEnabled(true);
         wv.setDomStorageEnabled(true);
         wv.setMediaPlaybackRequiresUserGesture(false);
-        wv.setMixedContentMode(wv.MIXED_CONTENT_ALWAYS_ALLOW);
+        wv.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         wv.setUserAgentString(uaString);
     }
 
@@ -218,36 +277,7 @@ public class MainActivity extends FragmentActivity {
             public void onPageFinished(WebView view, String url) {
                 cookies = CookieManager.getInstance().getCookie(url);
                 super.onPageFinished(view, url);
-                spectrumPlayer.evaluateJavascript("var loopVar = setInterval(function() {" +
-                                "try{" +
-                                // Accept initial prompts
-                                "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
-                                "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
-                                // Max volume
-                                "$('video')[0].volume = 1.0;" +
-                                "if($('video')[0]) {" +
-                                "Spectv.preloadGuide();" +
-                                "}" +
-                                // Hide html elements except video player
-                                "$('.site-header').attr('style', 'display: none');" +
-                                "$('#video-controls').attr('style', 'display: none');" +
-                                "$('.nav-triangle-pattern').attr('style', 'display: none');" +
-                                "$('channels-filter').attr('style', 'display: none');" +
-                                "$('.transparent-header').attr('style', 'display: none');" +
-                                // Style mini channel guide
-                                "$('#channel-browser').attr('style', 'height: 100%');" +
-                                "$('.mini-guide').attr('style', 'height: 100%');" +
-                                // To help with navigation with remote. Doesn't seem to do anything though
-                                "$('#channel-browser').attr('style', 'tabindex: 0');" +
-                                "$('#spectrum-player').attr('style', 'tabindex: 0');" +
-                                "$('.site-footer').attr('style', 'display: none');" +
-                                "}" +
-                                "catch(e){" +
-                                "console.log(e)" +
-                                "}" +
-                                "}, 2000);" +
-                                "function toggleGuide(s) {Spectv.channelGuide(s)}" +
-                                "function toggleMiniGuide(s) {Spectv.channelGuide(s)};"
+                spectrumPlayer.evaluateJavascript(playerInitJS
                         , null);
 
             }
@@ -292,51 +322,13 @@ public class MainActivity extends FragmentActivity {
         spectrumGuide.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
-                if(!guideLoaded) {
+                if (!guideLoaded) {
                     guideLoaded = true;
                     CookieManager.getInstance().setCookie(guideUrl, cookies, null);
                 }
                 super.onPageFinished(view, url);
                 spectrumGuide.evaluateJavascript(
-                        "var loopVar = setInterval(function() {" +
-                                "try {" +
-                                "var focusOnGuide = true;" +
-                                "$('.top-level-nav').attr('style', 'display: none');" +
-                                "$('.navbar').attr('style', 'display: none');" +
-                                "$('.time-nav').attr('style', 'display: none');" +
-                                "$('.guide').attr('style', 'width: 100%');" +
-                                "$('.site-footer').attr('style', 'display: none');" +
-                                "$('.filter-section').attr('style', 'display: none');" +
-                                "$(\"[role='tablist']\").attr('style', 'display: none');" +
-
-                                "var currentURL = new URL(window.location.href);" +
-                                "$('button:contains(\\'Watch Live\\')').unbind('click');" +
-                                "$('button:contains(\\'Watch Live\\')').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
-
-                                "if($('.channel-content').length > 0 && focusOnGuide) {" +
-                                "$('.channel-content-list-container').attr('style', 'tabindex: 1');" +
-                                "$('.channel-content-list-container').focus();" +
-                                "clearInterval(loopVar);" +
-                                "focusOnGuide = false;" +
-                                "}" +
-
-//                                "if($('#episode-container').length > 0) {" +
-                                "$('masthead').attr('style', 'display: none');" +
-                                "$('.nav-tab-bar').attr('style', 'display: none');" +
-                                "$('#button-watchLiveIP-0')[0].scrollIntoView();" +
-                                "$('#episode-container').attr('style', 'tabindex: 1');" +
-                                "$('#button-watchLiveIP-0').attr('style', 'tabindex: 2');" +
-                                "$('#button-watchLiveIP-0').focus();" +
-                                "alert('loaded')" +
-
-//                                "}" +
-                                "}" +
-                                "catch (error) {" +
-                                "console.log(error);" +
-                                "}" +
-                                "}" +
-                                ", 2000 " +
-                                ");"
+                        guideInitJS
                         , null);
             }
         });
