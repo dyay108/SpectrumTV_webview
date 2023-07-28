@@ -65,6 +65,14 @@ public class MainActivity extends FragmentActivity {
             "$('#channel-browser').attr('style', 'tabindex: 0');" +
             "$('#spectrum-player').attr('style', 'tabindex: 0');" +
             "$('.site-footer').attr('style', 'display: none');" +
+
+            // this should work...
+            "$('li').on('click', function(event) {\n" +
+            "var strArr = event.target.id.split('-');\n" +
+            "var channelId = strArr[strArr.length - 1];\n" +
+            "Spectv.saveLastChannel(channelId)\n" +
+            "});" +
+
             "}" +
             "catch(e){" +
             "console.log(e)" +
@@ -75,7 +83,7 @@ public class MainActivity extends FragmentActivity {
 
     String guideInitJS =
             "var loopVar = setInterval(" +
-            "function() {" +
+                    "function() {" +
                     "try {" +
                     "$('.site-footer-wrapper').attr('style', 'display: none');" +
                     "$('.top-level-nav').attr('style', 'display: none');" +
@@ -97,9 +105,9 @@ public class MainActivity extends FragmentActivity {
                     "catch (error) {" +
                     "console.log(error);" +
                     "}" +
-            "}" +
-            ", 2000 " +
-            ");";
+                    "}" +
+                    ", 2000 " +
+                    ");";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -206,11 +214,25 @@ public class MainActivity extends FragmentActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    sharedPrefEdit.putString("lastChannel", baseLiveChannelURL + channelId);
-                    sharedPrefEdit.apply();
+                    saveLastChannel(channelId);
                     spectrumPlayer.loadUrl(baseLiveChannelURL + channelId);
                     spectrumGuide.setVisibility(View.GONE);
                     spectrumGuide.evaluateJavascript("history.back();", null);
+                }
+            });
+        } catch (Exception e) {
+            Log.d("ERROR in live channel nav", e.toString());
+        }
+    }
+
+    @JavascriptInterface
+    public void saveLastChannel(String channelId) {
+        try {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    sharedPrefEdit.putString("lastChannel", baseLiveChannelURL + channelId);
+                    sharedPrefEdit.apply();
                 }
             });
         } catch (Exception e) {
@@ -266,7 +288,6 @@ public class MainActivity extends FragmentActivity {
                 super.onPermissionRequest(request);
             }
 
-
         });
         WebSettings spectrumPlayerWebSettings = spectrumPlayer.getSettings();
 
@@ -295,12 +316,12 @@ public class MainActivity extends FragmentActivity {
         spectrumGuide.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
 
         spectrumGuide.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("**************GUIDE************", consoleMessage.message() + " -- From line " +
-                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-                return true;
-            }
+//            @Override
+//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+//                Log.d("**************GUIDE************", consoleMessage.message() + " -- From line " +
+//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+//                return true;
+//            }
 
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -314,6 +335,8 @@ public class MainActivity extends FragmentActivity {
 
                 super.onPermissionRequest(request);
             }
+
+
         });
 
         WebSettings spectrumGuideWebSettings = spectrumGuide.getSettings();
