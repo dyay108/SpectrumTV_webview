@@ -40,6 +40,8 @@ public class MainActivity extends FragmentActivity {
     String cookies;
     boolean guideLoaded = false;
 
+    boolean miniGuideIsShowing = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +62,7 @@ public class MainActivity extends FragmentActivity {
     public boolean dispatchKeyEvent(KeyEvent event) {
         // Handle key events to consistently bring up the mini channel guide
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP && spectrumGuide.getVisibility() == View.GONE) {
+            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP && spectrumGuide.getVisibility() == View.GONE && !miniGuideIsShowing) {
                 // Simulate clicking on the video player which brings up the mini channel guide (just like on desktop)
                 //spectrumPlayer.evaluateJavascript("$('#spectrum-player').focus().click();", null);
 
@@ -75,7 +77,7 @@ public class MainActivity extends FragmentActivity {
 //                    }
 //                });
 
-                spectrumPlayer.evaluateJavascript("toggleGuide('SHOW');", null);
+                spectrumPlayer.evaluateJavascript("toggleGuide('SHOWGUIDE');", null);
 
                 return true;
             }
@@ -85,7 +87,20 @@ public class MainActivity extends FragmentActivity {
                 if (spectrumGuide.canGoBack()) {
                     spectrumGuide.evaluateJavascript("history.back();", null);
                 } else {
-                    spectrumPlayer.evaluateJavascript("toggleGuide('HIDE');", null);
+                    spectrumPlayer.evaluateJavascript("toggleGuide('HIDEGUIDE');", null);
+                }
+
+                return true;
+            }
+
+            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT && spectrumGuide.getVisibility() == View.GONE) {
+                if(miniGuideIsShowing) {
+                    spectrumPlayer.evaluateJavascript("$('mini-guide').last().removeClass('mini-guide-open')", null);
+                    miniGuideIsShowing = false;
+                }
+                else {
+                    spectrumPlayer.evaluateJavascript("$('mini-guide').last().addClass('mini-guide-open')", null);
+                    miniGuideIsShowing = true;
                 }
 
                 return true;
@@ -98,7 +113,7 @@ public class MainActivity extends FragmentActivity {
     @JavascriptInterface
     public void channelGuide(String action) {
         switch (action) {
-            case "SHOW":
+            case "SHOWGUIDE":
                 try {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -112,7 +127,7 @@ public class MainActivity extends FragmentActivity {
                     Log.d("ERROR in showing", e.toString());
                 }
                 break;
-            case "HIDE":
+            case "HIDEGUIDE":
                 try {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -223,7 +238,7 @@ public class MainActivity extends FragmentActivity {
                                 "$('#channel-browser').attr('style', 'height: 100%');" +
                                 "$('.mini-guide').attr('style', 'height: 100%');" +
                                 // To help with navigation with remote. Doesn't seem to do anything though
-                                "$('#channel-browser').attr('style', 'tabindex: 1');" +
+                                "$('#channel-browser').attr('style', 'tabindex: 0');" +
                                 "$('#spectrum-player').attr('style', 'tabindex: 0');" +
                                 "$('.site-footer').attr('style', 'display: none');" +
                                 "}" +
@@ -231,7 +246,8 @@ public class MainActivity extends FragmentActivity {
                                 "console.log(e)" +
                                 "}" +
                                 "}, 2000);" +
-                                "function toggleGuide(s) {Spectv.channelGuide(s)}"
+                                "function toggleGuide(s) {Spectv.channelGuide(s)}" +
+                                "function toggleMiniGuide(s) {Spectv.channelGuide(s)};"
                         , null);
 
             }
@@ -249,12 +265,12 @@ public class MainActivity extends FragmentActivity {
         spectrumGuide.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
 
         spectrumGuide.setWebChromeClient(new WebChromeClient() {
-//            @Override
-//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-//                Log.d("**************GUIDE************", consoleMessage.message() + " -- From line " +
-//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-//                return true;
-//            }
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                Log.d("**************GUIDE************", consoleMessage.message() + " -- From line " +
+                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+                return true;
+            }
 
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -284,18 +300,36 @@ public class MainActivity extends FragmentActivity {
                 spectrumGuide.evaluateJavascript(
                         "var loopVar = setInterval(function() {" +
                                 "try {" +
-
+                                "var focusOnGuide = true;" +
                                 "$('.top-level-nav').attr('style', 'display: none');" +
                                 "$('.navbar').attr('style', 'display: none');" +
                                 "$('.time-nav').attr('style', 'display: none');" +
                                 "$('.guide').attr('style', 'width: 100%');" +
                                 "$('.site-footer').attr('style', 'display: none');" +
+                                "$('.filter-section').attr('style', 'display: none');" +
                                 "$(\"[role='tablist']\").attr('style', 'display: none');" +
 
                                 "var currentURL = new URL(window.location.href);" +
                                 "$('button:contains(\\'Watch Live\\')').unbind('click');" +
                                 "$('button:contains(\\'Watch Live\\')').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(currentURL.searchParams.get('tmsGuideServiceId'))});" +
 
+                                "if($('.channel-content').length > 0 && focusOnGuide) {" +
+                                "$('.channel-content-list-container').attr('style', 'tabindex: 1');" +
+                                "$('.channel-content-list-container').focus();" +
+                                "clearInterval(loopVar);" +
+                                "focusOnGuide = false;" +
+                                "}" +
+
+//                                "if($('#episode-container').length > 0) {" +
+                                "$('masthead').attr('style', 'display: none');" +
+                                "$('.nav-tab-bar').attr('style', 'display: none');" +
+                                "$('#button-watchLiveIP-0')[0].scrollIntoView();" +
+                                "$('#episode-container').attr('style', 'tabindex: 1');" +
+                                "$('#button-watchLiveIP-0').attr('style', 'tabindex: 2');" +
+                                "$('#button-watchLiveIP-0').focus();" +
+                                "alert('loaded')" +
+
+//                                "}" +
                                 "}" +
                                 "catch (error) {" +
                                 "console.log(error);" +
