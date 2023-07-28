@@ -6,5 +6,5 @@ Manipulates javascript to hide unnecessary html elements, etc...
 V1.0
 Left/Rigth DPad to bring up mini guide.
 
-V1.1
+V1.2
 Bring up TV Guide with D-Pad Up
