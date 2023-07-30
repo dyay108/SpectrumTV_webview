@@ -45,13 +45,9 @@ public class MainActivity extends FragmentActivity {
             "function() {" +
             "try{" +
             // Accept initial prompts
-            "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
-            "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
-            // Max volume
-            "$('video')[0].volume = 1.0;" +
-            "if($('video')[0]) {" +
-            "Spectv.preloadGuide();" +
-            "}" +
+            "if(document.querySelector('.continue-button')?.childNodes?.length > 0) {document.querySelector('.continue-button')?.childNodes[0].click();}" +
+            "document.querySelector('[aria-label*=\"Continue and accept\"]')?.click();"+
+            "document.querySelector('.btn-success')?.click();" +
             // Hide html elements except video player
             "$('.site-header').attr('style', 'display: none');" +
             "$('#video-controls').attr('style', 'display: none');" +
@@ -67,15 +63,23 @@ public class MainActivity extends FragmentActivity {
             "$('.site-footer').attr('style', 'display: none');" +
 
             // this should work...
-            "$('li').on('click', function(event) {\n" +
-            "var strArr = event.target.id.split('-');\n" +
-            "var channelId = strArr[strArr.length - 1];\n" +
-            "Spectv.saveLastChannel(channelId)\n" +
-            "});" +
+//            "$('li').on('click', function(event) {\n" +
+//            "var strArr = event.target.id.split('-');\n" +
+//            "var channelId = strArr[strArr.length - 1];\n" +
+//            "Spectv.saveLastChannel(channelId)\n" +
+//            "});" +
+            "if($('video')?.length > 0) {" +
+            // Max volume
+            "$('video')[0].volume = 1.0;" +
+            // Load Guide
+            "Spectv.preloadGuide();" +
+            "console.log('DONEEEEEEEEEEEEE');" +
+            "clearInterval(loopVar)"+
+            "}" +
 
             "}" +
             "catch(e){" +
-            "console.log(e)" +
+            "console.log('ERROR in livetv',e)" +
             "}" +
             "}, 2000);" +
             "function toggleGuide(s) {Spectv.channelGuide(s)}" +
@@ -103,7 +107,7 @@ public class MainActivity extends FragmentActivity {
 
                     "}" +
                     "catch (error) {" +
-                    "console.log(error);" +
+                    "console.log('ERROR in guide',error);" +
                     "}" +
                     "}" +
                     ", 2000 " +
@@ -276,12 +280,12 @@ public class MainActivity extends FragmentActivity {
         spectrumPlayer = (WebView) findViewById(R.id.spectv);
 
         spectrumPlayer.setWebChromeClient(new WebChromeClient() {
-//            @Override
-//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-//                Log.d("**************PLAYER************", consoleMessage.message() + " -- From line " +
-//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-//                return true;
-//            }
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                Log.d("**************PLAYER************", consoleMessage.message() + " -- From line " +
+                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+                return true;
+            }
 
             @Override
             public void onPermissionRequest(PermissionRequest request) {
