@@ -62,18 +62,11 @@ public class MainActivity extends FragmentActivity {
             "$('#spectrum-player').attr('style', 'tabindex: 0');" +
             "$('.site-footer').attr('style', 'display: none');" +
 
-            // this should work...
-//            "$('li').on('click', function(event) {\n" +
-//            "var strArr = event.target.id.split('-');\n" +
-//            "var channelId = strArr[strArr.length - 1];\n" +
-//            "Spectv.saveLastChannel(channelId)\n" +
-//            "});" +
             "if($('video')?.length > 0) {" +
             // Max volume
             "$('video')[0].volume = 1.0;" +
             // Load Guide
             "Spectv.preloadGuide();" +
-            "console.log('DONEEEEEEEEEEEEE');" +
             "clearInterval(loopVar)"+
             "}" +
 
@@ -83,7 +76,22 @@ public class MainActivity extends FragmentActivity {
             "}" +
             "}, 2000);" +
             "function toggleGuide(s) {Spectv.channelGuide(s)}" +
-            "function toggleMiniGuide(s) {Spectv.channelGuide(s)};";
+            "function toggleMiniGuide(s) {Spectv.channelGuide(s)};"  +
+
+            // To be able to save last viewed channel from mmini guide.
+            // hacky way since cant listen to click event on channel-list items
+            "var loopActiveEl = setInterval(() => {" +
+            "try {" +
+            "if(document?.activeElement?.id?.includes('channel-list-item-')) {" +
+            "if($('video')[0].paused) {" +
+            "var strArr = document?.activeElement?.id.split('-');" +
+            "var channelId = strArr[strArr.length - 1];" +
+            "Spectv.saveLastChannel(channelId);"+
+                    "}" +
+                "}"+
+            "}" +
+            "catch(e){console.log('ERROR in miniguide monitoring',e);}"+
+            "}, 1000);";
 
     String guideInitJS =
             "var loopVar = setInterval(" +
@@ -280,12 +288,12 @@ public class MainActivity extends FragmentActivity {
         spectrumPlayer = (WebView) findViewById(R.id.spectv);
 
         spectrumPlayer.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("**************PLAYER************", consoleMessage.message() + " -- From line " +
-                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
-                return true;
-            }
+//            @Override
+//            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+//                Log.d("**************PLAYER************", consoleMessage.message() + " -- From line " +
+//                        consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+//                return true;
+//            }
 
             @Override
             public void onPermissionRequest(PermissionRequest request) {
