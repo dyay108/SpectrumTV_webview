@@ -45,13 +45,9 @@ public class MainActivity extends FragmentActivity {
             "function() {" +
             "try{" +
             // Accept initial prompts
-            "document.querySelector('[aria-label=\"Continue and accept terms and conditions to go to Spectrum TV\"]')?.click();" +
-            "[...document.querySelectorAll(\"button\")]?.find(btn => btn.textContent.includes(\"Got It\"))?.click();" +
-            // Max volume
-            "$('video')[0].volume = 1.0;" +
-            "if($('video')[0]) {" +
-            "Spectv.preloadGuide();" +
-            "}" +
+            "if(document.querySelector('.continue-button')?.childNodes?.length > 0) {document.querySelector('.continue-button')?.childNodes[0].click();}" +
+            "document.querySelector('[aria-label*=\"Continue and accept\"]')?.click();"+
+            "document.querySelector('.btn-success')?.click();" +
             // Hide html elements except video player
             "$('.site-header').attr('style', 'display: none');" +
             "$('#video-controls').attr('style', 'display: none');" +
@@ -66,20 +62,36 @@ public class MainActivity extends FragmentActivity {
             "$('#spectrum-player').attr('style', 'tabindex: 0');" +
             "$('.site-footer').attr('style', 'display: none');" +
 
-            // this should work...
-            "$('li').on('click', function(event) {\n" +
-            "var strArr = event.target.id.split('-');\n" +
-            "var channelId = strArr[strArr.length - 1];\n" +
-            "Spectv.saveLastChannel(channelId)\n" +
-            "});" +
+            "if($('video')?.length > 0) {" +
+            // Max volume
+            "$('video')[0].volume = 1.0;" +
+            // Load Guide
+            "Spectv.preloadGuide();" +
+            "clearInterval(loopVar)"+
+            "}" +
 
             "}" +
             "catch(e){" +
-            "console.log(e)" +
+            "console.log('ERROR in livetv',e)" +
             "}" +
             "}, 2000);" +
             "function toggleGuide(s) {Spectv.channelGuide(s)}" +
-            "function toggleMiniGuide(s) {Spectv.channelGuide(s)};";
+            "function toggleMiniGuide(s) {Spectv.channelGuide(s)};"  +
+
+            // To be able to save last viewed channel from mmini guide.
+            // hacky way since cant listen to click event on channel-list items
+            "var loopActiveEl = setInterval(() => {" +
+            "try {" +
+            "if(document?.activeElement?.id?.includes('channel-list-item-')) {" +
+            "if($('video')[0].paused) {" +
+            "var strArr = document?.activeElement?.id.split('-');" +
+            "var channelId = strArr[strArr.length - 1];" +
+            "Spectv.saveLastChannel(channelId);"+
+                    "}" +
+                "}"+
+            "}" +
+            "catch(e){console.log('ERROR in miniguide monitoring',e);}"+
+            "}, 1000);";
 
     String guideInitJS =
             "var loopVar = setInterval(" +
@@ -103,7 +115,7 @@ public class MainActivity extends FragmentActivity {
 
                     "}" +
                     "catch (error) {" +
-                    "console.log(error);" +
+                    "console.log('ERROR in guide',error);" +
                     "}" +
                     "}" +
                     ", 2000 " +
@@ -156,6 +168,14 @@ public class MainActivity extends FragmentActivity {
                 } else {
                     spectrumPlayer.evaluateJavascript("toggleGuide('HIDEGUIDE');", null);
                 }
+
+                return true;
+            }
+
+            if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && miniGuideIsShowing) {
+
+                spectrumPlayer.evaluateJavascript("$('mini-guide').last().removeClass('mini-guide-open')", null);
+                miniGuideIsShowing = false;
 
                 return true;
             }
