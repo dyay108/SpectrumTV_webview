@@ -160,6 +160,14 @@ public class MainActivity extends FragmentActivity {
                 return true;
             }
 
+            if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && miniGuideIsShowing) {
+
+                spectrumPlayer.evaluateJavascript("$('mini-guide').last().removeClass('mini-guide-open')", null);
+                miniGuideIsShowing = false;
+
+                return true;
+            }
+
             if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT && spectrumGuide.getVisibility() == View.GONE) {
                 if (miniGuideIsShowing) {
                     spectrumPlayer.evaluateJavascript("$('mini-guide').last().removeClass('mini-guide-open')", null);
