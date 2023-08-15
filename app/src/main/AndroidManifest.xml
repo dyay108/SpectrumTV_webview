@@ -24,6 +24,7 @@
             android:exported="true"
             android:icon="@drawable/app_icon_your_company"
             android:label="@string/title_activity_main"
+            android:launchMode="singleTask"
             android:logo="@drawable/app_icon_your_company"
             android:screenOrientation="landscape">
             <intent-filter>

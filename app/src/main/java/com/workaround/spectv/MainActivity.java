@@ -2,6 +2,7 @@ package com.workaround.spectv;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -127,13 +128,24 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         sharedPref = this.getSharedPreferences("com.workaround.spectv.pref", Context.MODE_PRIVATE);
         sharedPrefEdit = sharedPref.edit();
-        lastChannelURL = sharedPref.getString("lastChannel", "");
+        String channelId = getIntent().getStringExtra("channelId");
+        if (channelId != null)
+            lastChannelURL = baseLiveChannelURL + channelId;
+        else
+            lastChannelURL = sharedPref.getString("lastChannel", "");
 
         initPlayer();
         initGuide();
 
         spectrumPlayer.addJavascriptInterface(this, "Spectv");
         spectrumGuide.addJavascriptInterface(this, "Spectv");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String channelId = intent.getStringExtra("channelId");
+        navToChannel(channelId);
     }
 
     @SuppressLint("RestrictedApi")
