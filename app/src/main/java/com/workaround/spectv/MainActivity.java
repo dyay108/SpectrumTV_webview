@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -128,11 +129,16 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         sharedPref = this.getSharedPreferences("com.workaround.spectv.pref", Context.MODE_PRIVATE);
         sharedPrefEdit = sharedPref.edit();
-        String channelId = getIntent().getStringExtra("channelId");
-        if (channelId != null)
-            lastChannelURL = baseLiveChannelURL + channelId;
-        else
-            lastChannelURL = sharedPref.getString("lastChannel", "");
+        Uri intentData = getIntent().getData();
+        if (intentData != null)
+            lastChannelURL = intentData.toString();
+        else {
+            String channelId = getIntent().getStringExtra("channelId");
+            if (channelId != null)
+                lastChannelURL = baseLiveChannelURL + channelId;
+            else
+                lastChannelURL = sharedPref.getString("lastChannel", "");
+        }
 
         initPlayer();
         initGuide();
@@ -144,7 +150,15 @@ public class MainActivity extends FragmentActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        String channelId = intent.getStringExtra("channelId");
+        String channelId;
+        Uri intentData = intent.getData();
+        if (intentData != null) {
+            String uriStr = intentData.toString();
+            int equals = uriStr.lastIndexOf("=");
+            channelId = uriStr.substring(equals+1);
+        } else {
+            channelId = intent.getStringExtra("channelId");
+        }
         navToChannel(channelId);
     }
 
