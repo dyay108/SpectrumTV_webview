@@ -113,7 +113,7 @@ public class MainActivity extends FragmentActivity {
                     "$('.channel-content-list-container').focus();" +
                     "}" +
                     "$('.channel-content-list-container').unbind('click');" +
-                    "$('.channel-content-list-container').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(new URL(event.target.href).searchParams.get('tmsGuideServiceId'))});" +
+                    "$('.channel-content-list-container').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(new URL(event.target.href).searchParams.get('tmsGuideServiceId'), true)});" +
 
                     "}" +
                     "catch (error) {" +
@@ -159,7 +159,7 @@ public class MainActivity extends FragmentActivity {
         } else {
             channelId = intent.getStringExtra("channelId");
         }
-        navToChannel(channelId);
+        navToChannel(channelId, false);
     }
 
     @SuppressLint("RestrictedApi")
@@ -255,7 +255,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     @JavascriptInterface
-    public void navToChannel(String channelId) {
+    public void navToChannel(String channelId, boolean doBack) {
         try {
             runOnUiThread(new Runnable() {
                 @Override
@@ -263,7 +263,8 @@ public class MainActivity extends FragmentActivity {
                     saveLastChannel(channelId);
                     spectrumPlayer.loadUrl(baseLiveChannelURL + channelId);
                     spectrumGuide.setVisibility(View.GONE);
-                    spectrumGuide.evaluateJavascript("history.back();", null);
+                    if (doBack)
+                        spectrumGuide.evaluateJavascript("history.back();", null);
                 }
             });
         } catch (Exception e) {
