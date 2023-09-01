@@ -69,7 +69,23 @@ public class MainActivity extends FragmentActivity {
             "$('video')[0].volume = 1.0;" +
             // Load Guide
             "Spectv.preloadGuide();" +
-            "clearInterval(loopVar)"+
+            "clearInterval(loopVar);"+
+
+            "var loopContBtn = setInterval(" +
+                "function() {" +
+                    "try{" +
+                         // Click any Still There? continue buttons
+                        "document.evaluate(" +
+                            "\"//button[contains(text(), 'Continue')]\"," +
+                            "document, null," +
+                            "XPathResult.FIRST_ORDERED_NODE_TYPE," +
+                            "null).singleNodeValue?.click();" +
+                    "}" +
+                    "catch(e) {" +
+                        "console.log('ERROR in button monitoring',e)" +
+                    "}" +
+                "}, 1000);" +
+
             "}" +
 
             "}" +
