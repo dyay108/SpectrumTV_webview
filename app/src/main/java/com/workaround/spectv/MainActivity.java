@@ -71,20 +71,27 @@ public class MainActivity extends FragmentActivity {
             "Spectv.preloadGuide();" +
             "clearInterval(loopVar);"+
 
-            "var loopContBtn = setInterval(" +
-                "function() {" +
-                    "try{" +
-                         // Click any Still There? continue buttons
-                        "document.evaluate(" +
-                            "\"//button[contains(text(), 'Continue')]\"," +
-                            "document, null," +
-                            "XPathResult.FIRST_ORDERED_NODE_TYPE," +
-                            "null).singleNodeValue?.click();" +
+            // Watfor for and click the Still there? Continue button.
+            "var observer = new MutationObserver(function(mutations) {" +
+                "for (mutation of mutations) {" +
+                    "for (addedNode of mutation.addedNodes) {" +
+                        "var button = document.evaluate(" +
+                             "\"//button[contains(text(), 'Continue')]\"," +
+                             "addedNode, null," +
+                             "XPathResult.FIRST_ORDERED_NODE_TYPE," +
+                             "null).singleNodeValue;" +
+                        "if (button) {" +
+                            "console.log('clicking continue button');" +
+                            "button.click();" +
+                            "return;" +
+                        "}" +
                     "}" +
-                    "catch(e) {" +
-                        "console.log('ERROR in button monitoring',e)" +
-                    "}" +
-                "}, 1000);" +
+                "};" +
+            "});" +
+            "observer.observe(document.body, {" +
+                "subtree: true," +
+                "childList: true" +
+            "});" +
 
             "}" +
 
