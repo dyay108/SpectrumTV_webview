@@ -2,8 +2,10 @@ package com.workaround.spectv;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -67,7 +69,30 @@ public class MainActivity extends FragmentActivity {
             "$('video')[0].volume = 1.0;" +
             // Load Guide
             "Spectv.preloadGuide();" +
-            "clearInterval(loopVar)"+
+            "clearInterval(loopVar);"+
+
+            // Watfor for and click the Still there? Continue button.
+            "var observer = new MutationObserver(function(mutations) {" +
+                "for (mutation of mutations) {" +
+                    "for (addedNode of mutation.addedNodes) {" +
+                        "var button = document.evaluate(" +
+                             "\"//button[contains(text(), 'Continue')]\"," +
+                             "addedNode, null," +
+                             "XPathResult.FIRST_ORDERED_NODE_TYPE," +
+                             "null).singleNodeValue;" +
+                        "if (button) {" +
+                            "console.log('clicking continue button');" +
+                            "button.click();" +
+                            "return;" +
+                        "}" +
+                    "}" +
+                "};" +
+            "});" +
+            "observer.observe(document.body, {" +
+                "subtree: true," +
+                "childList: true" +
+            "});" +
+
             "}" +
 
             "}" +
@@ -111,7 +136,7 @@ public class MainActivity extends FragmentActivity {
                     "$('.channel-content-list-container').focus();" +
                     "}" +
                     "$('.channel-content-list-container').unbind('click');" +
-                    "$('.channel-content-list-container').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(new URL(event.target.href).searchParams.get('tmsGuideServiceId'))});" +
+                    "$('.channel-content-list-container').on('click', function(event) {event.preventDefault(); event.stopImmediatePropagation(); Spectv.navToChannel(new URL(event.target.href).searchParams.get('tmsGuideServiceId'), true)});" +
 
                     "}" +
                     "catch (error) {" +
@@ -127,13 +152,37 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         sharedPref = this.getSharedPreferences("com.workaround.spectv.pref", Context.MODE_PRIVATE);
         sharedPrefEdit = sharedPref.edit();
-        lastChannelURL = sharedPref.getString("lastChannel", "");
+        Uri intentData = getIntent().getData();
+        if (intentData != null)
+            lastChannelURL = intentData.toString();
+        else {
+            String channelId = getIntent().getStringExtra("channelId");
+            if (channelId != null)
+                lastChannelURL = baseLiveChannelURL + channelId;
+            else
+                lastChannelURL = sharedPref.getString("lastChannel", "");
+        }
 
         initPlayer();
         initGuide();
 
         spectrumPlayer.addJavascriptInterface(this, "Spectv");
         spectrumGuide.addJavascriptInterface(this, "Spectv");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String channelId;
+        Uri intentData = intent.getData();
+        if (intentData != null) {
+            String uriStr = intentData.toString();
+            int equals = uriStr.lastIndexOf("=");
+            channelId = uriStr.substring(equals+1);
+        } else {
+            channelId = intent.getStringExtra("channelId");
+        }
+        navToChannel(channelId, false);
     }
 
     @SuppressLint("RestrictedApi")
@@ -229,7 +278,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     @JavascriptInterface
-    public void navToChannel(String channelId) {
+    public void navToChannel(String channelId, boolean doBack) {
         try {
             runOnUiThread(new Runnable() {
                 @Override
@@ -237,7 +286,8 @@ public class MainActivity extends FragmentActivity {
                     saveLastChannel(channelId);
                     spectrumPlayer.loadUrl(baseLiveChannelURL + channelId);
                     spectrumGuide.setVisibility(View.GONE);
-                    spectrumGuide.evaluateJavascript("history.back();", null);
+                    if (doBack)
+                        spectrumGuide.evaluateJavascript("history.back();", null);
                 }
             });
         } catch (Exception e) {
